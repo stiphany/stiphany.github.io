@@ -1,16 +1,17 @@
 <?php
-if(isset($_post['submit'])) {
+if(isset($_POST['submit'])) {
 $to = 'stiphanyt@gmail.com';
-$subject = $_post['subject'];
-$name_field = $_post['name'];
-$email_field = $_post['email'];
-$message = $_post['message'];
+$subject = $_POST['subject'];
+$name_field = $_POST['name'];
+$email_field = $_POST['email'];
+$message = $_POST['message'];
  
 $body = "From: $name_field\n E-Mail: $email_field\n Message:\n $message";
  
-echo "Data has been submitted to $to!";
-mail($to, $subject, $body);
+if (mail($to, $subject, $body)) {
+ echo 'Message sent.';
 } else {
-echo "blarg!";
+  echo 'Rip. Try again.';
 }
+ 
 ?>
