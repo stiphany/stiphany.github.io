@@ -1,4 +1,16 @@
 <?php
-    mail('stiphanyt@gmail.com', $_POST['name'], $_POST['email'], $_POST['subject'], $_POST['message']);
+if(isset($_POST['submit'])) {
+$to = "stiphanyt@gmail.com";
+$subject = $_POST['subject'];
+$name_field = $_POST['name'];
+$email_field = $_POST['email'];
+$message = $_POST['message'];
+ 
+$body = "From: $name_field\n E-Mail: $email_field\n Message:\n $message";
+ 
+echo "Data has been submitted to $to!";
+mail($to, $subject, $body);
+} else {
+echo "blarg!";
+}
 ?>
-<p>Your email has been sent.</p>
