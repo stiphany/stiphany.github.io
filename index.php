@@ -8,7 +8,7 @@ if(isset($_POST['submit'])) {
  
  $to = "stiphany@psu.com";
  $headers = "From ".$mailFrom;
- $body = "Email from ",$name.".\n\n".$message;
+ $body = "Email from ".$name.".\n\n".$message;
 
  mail($to, $subject, $body, $headers);
  header("Location: index.php?mailsend");
