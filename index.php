@@ -1,18 +1,17 @@
 <?php
 
 if(isset($_POST['submit'])) {
- $to = "stiphany@psu.com";
+ $name = $_POST['name'];
  $subject = $_POST['subject'];
- $name_field = $_POST['name'];
- $email_field = $_POST['email'];
+ $mailFrom = $_POST['email'];
  $message = $_POST['message'];
  
- $body = "From: ".$name_field"\n E-Mail: ".$email_field"\n Message:\n" .$message";
- 
-if (mail($to, $subject, $body)) {
- echo 'Message sent.';
-} else {
-  echo 'Rip. Try again.';
+ $to = "stiphany@psu.com";
+ $headers = "From ".$mailFrom;
+ $body = "Email from ",$name.".\n\n".$message;
+
+ mail($to, $subject, $body, $headers);
+ header("Location: index.php?mailsend");
 }
  
 ?>
