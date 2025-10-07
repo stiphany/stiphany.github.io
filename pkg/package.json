@@ -1,0 +1,13 @@
+{
+  "name": "browser_models",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "browser_models_bg.wasm",
+    "browser_models.js"
+  ],
+  "main": "browser_models.js",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
