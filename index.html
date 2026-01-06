@@ -20,7 +20,7 @@
             height: 100%;
             position: relative;
         }
-        #threejs-viewport, #intensity-viewport {
+        #threejs-viewport, #intensity-viewport, #dataset-grid-viewport {
             width: 100%;
             height: 100%;
             display: none;
@@ -29,6 +29,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        #dataset-grid-viewport.active {
+            display: grid;
+            overflow-y: auto;
         }
         #threejs-viewport canvas {
             max-width: 100%;
@@ -106,8 +110,9 @@
             background: #333;
             border: 1px solid #555;
             flex: 1;
-            padding: 6px;
-            font-size: 12px;
+            padding: 6px 4px;
+            font-size: 11px;
+            white-space: nowrap;
         }
         .view-toggle button.active {
             background: #007bff;
@@ -239,6 +244,132 @@
         #percentile-controls {
             display: none;
         }
+        input[type="radio"] {
+            cursor: pointer;
+            accent-color: #007bff;
+        }
+        .height-controls-section {
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        #dataset-grid-viewport::-webkit-scrollbar {
+            width: 10px;
+        }
+        #dataset-grid-viewport::-webkit-scrollbar-track {
+            background: #111;
+        }
+        #dataset-grid-viewport::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
+        }
+        #dataset-grid-viewport::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .dataset-panel {
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .dataset-panel:hover {
+            transform: scale(1.02);
+            border-color: #007bff !important;
+        }
+        .thumbnail-gallery {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            flex-direction: row;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 90vw;
+            overflow-x: auto;
+            z-index: 200;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        .thumbnail-gallery::-webkit-scrollbar {
+            height: 6px;
+        }
+        .thumbnail-gallery::-webkit-scrollbar-track {
+            background: #111;
+            border-radius: 3px;
+        }
+        .thumbnail-gallery::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        .thumbnail-item {
+            flex-shrink: 0;
+            width: 100px;
+            cursor: pointer;
+            border: 2px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            transition: all 0.2s;
+            background: #111;
+        }
+        .thumbnail-item:hover {
+            border-color: #007bff;
+            transform: scale(1.05);
+        }
+        .thumbnail-item.active {
+            border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+        .thumbnail-item img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            display: block;
+        }
+        .thumbnail-label {
+            padding: 4px;
+            font-size: 9px;
+            text-align: center;
+            color: #ccc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background: rgba(0,0,0,0.8);
+        }
+        .nav-btn {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background: #007bff;
+            border-color: #007bff;
+        }
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .prev-btn {
+            margin-right: 5px;
+        }
+        .next-btn {
+            margin-left: 5px;
+        }
+        #copy-data-btn:hover {
+            background: rgba(0, 123, 255, 0.2);
+            border-color: #007bff;
+            color: #007bff;
+        }
     </style>
 </head>
 <body>
@@ -247,6 +378,7 @@
         <div id="intensity-viewport">
             <canvas id="intensity-canvas" width="1024" height="1024"></canvas>
         </div>
+        <div id="dataset-grid-viewport"></div>
     </div>
 
     <div class="controls-panel">
@@ -254,9 +386,13 @@
         
         <div class="control-group">
             <div class="upload-area" id="upload-area">
-                📁 Upload DATX
-                <input type="file" id="file-input" accept=".datx" style="display: none;">
+                Upload DATX File(s)
+                <input type="file" id="file-input" accept=".datx" multiple style="display: none;">
             </div>
+        </div>
+        
+        <div id="loading-message" style="display: none; text-align: center; padding: 8px; background: rgba(0,123,255,0.2); border-radius: 4px; font-size: 11px; color: #007bff; margin-bottom: 8px;">
+            Loading files...
         </div>
 
         <div class="control-group">
@@ -273,6 +409,63 @@
             <div class="view-toggle">
                 <button id="view-3d" class="active">3D</button>
                 <button id="view-intensity">Intensity</button>
+                <button id="view-datasets">All Data</button>
+            </div>
+        </div>
+
+        <div class="control-group" id="data-info" style="display: none;">
+            <div style="background: rgba(50,50,50,0.5); padding: 10px; border-radius: 4px; border: 1px solid #444; position: relative;">
+                <div style="font-size: 11px; color: #888; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Data Range</span>
+                    <button id="copy-data-btn" style="background: transparent; border: 1px solid #555; color: #888; padding: 2px 6px; font-size: 10px; border-radius: 3px; cursor: pointer; transition: all 0.2s;" title="Copy data info">Copy</button>
+                </div>
+                <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 11px;">
+                    <div style="color: #aaa;">Dimensions:</div>
+                    <div style="color: #fff; font-weight: bold; font-family: monospace;" id="dimensions-display">--</div>
+                    <div style="color: #aaa; margin-top: 4px; padding-top: 6px; border-top: 1px solid #333;">Depth Min:</div>
+                    <div style="color: #4db8ff; font-weight: bold; font-family: monospace; margin-top: 4px; padding-top: 6px; border-top: 1px solid #333;" id="surface-min-display">--</div>
+                    <div style="color: #aaa;">Depth Max:</div>
+                    <div style="color: #4db8ff; font-weight: bold; font-family: monospace;" id="surface-max-display">--</div>
+                    <div style="color: #aaa;">Depth Range:</div>
+                    <div style="color: #4caf50; font-weight: bold; font-family: monospace;" id="surface-range-display">--</div>
+                    <div style="color: #aaa; margin-top: 4px; padding-top: 6px; border-top: 1px solid #333;">Intensity Min:</div>
+                    <div style="color: #ffa726; font-weight: bold; font-family: monospace; margin-top: 4px; padding-top: 6px; border-top: 1px solid #333;" id="intensity-min-display">--</div>
+                    <div style="color: #aaa;">Intensity Max:</div>
+                    <div style="color: #ffa726; font-weight: bold; font-family: monospace;" id="intensity-max-display">--</div>
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; font-size: 10px; color: #666; text-align: center;">
+                    Original data values
+                </div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="slider-group">
+                <label style="font-size: 13px; margin-bottom: 8px; display: block; color: #fff;">Height Scaling</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="height-mode" id="height-mode-auto" checked>
+                        <span style="font-size: 12px;">Auto</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                        <input type="radio" name="height-mode" id="height-mode-manual">
+                        <span style="font-size: 12px;">Manual</span>
+                    </label>
+                </div>
+                <div id="manual-height-controls" style="display: none;">
+                    <div style="margin-bottom: 8px;">
+                        <label>Min: <strong id="height-min-value">0.0</strong></label>
+                        <input type="range" id="height-min-slider" min="0" max="200" step="0.1" value="0">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label>Max: <strong id="height-max-value">100.0</strong></label>
+                        <input type="range" id="height-max-slider" min="0" max="200" step="0.1" value="100">
+                    </div>
+                </div>
+                <div style="margin-top: 8px;">
+                    <label>Scale: <strong id="height-multiplier-value">20.0</strong>x</label>
+                    <input type="range" id="height-multiplier-slider" min="1" max="100" step="0.5" value="20">
+                </div>
             </div>
         </div>
 
@@ -285,7 +478,11 @@
     </div>
 
     <div class="webgpu-badge" id="webgpu-badge">Checking WebGPU...</div>
-    <div class="info-btn" id="info-btn">ℹ️</div>
+    <div class="info-btn" id="info-btn">Info</div>
+    
+    <div id="file-counter" style="display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 4px; border: 1px solid #333; font-size: 12px; z-index: 100; max-width: 500px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; backdrop-filter: blur(10px); transition: opacity 0.3s;"></div>
+    
+    <div id="thumbnail-gallery" class="thumbnail-gallery"></div>
 
     <div class="progress-overlay" id="progress">
         <div class="progress-bar">
@@ -299,10 +496,20 @@
             <h2>Defect Detection Tool</h2>
             <p>Automated defect detection for optical profilometry data using machine learning.</p>
             <p><strong>Usage:</strong></p>
-            <p>1. Upload a DATX file or select a demo<br>
+            <p>1. Upload DATX file(s) or select a demo<br>
+            <em>Tip: Select multiple files for batch viewing</em><br>
             2. Click "Run Inference" to process<br>
             3. Adjust percentile to highlight defects</p>
-            <p><strong>Views:</strong> Toggle between 3D surface and intensity data. Red indicates detected defects.</p>
+            <p><strong>Navigation:</strong> Use arrow keys (← →) or A/D to switch between loaded files. Click thumbnails at the bottom to jump to specific files.</p>
+            <p><strong>Views:</strong></p>
+            <p><em>3D:</em> Point cloud visualization of surface data<br>
+            <em>Intensity:</em> Single intensity channel view<br>
+            <em>All Data:</em> Grid view of all datasets found in DATX file</p>
+            <p>Red highlights indicate detected defects.</p>
+            <p><strong>Height Scaling:</strong></p>
+            <p><em>Auto mode:</em> Automatically scales based on data min/max<br>
+            <em>Manual mode:</em> Set custom min/max values for consistent scaling across datasets<br>
+            <em>Scale multiplier:</em> Adjust the vertical exaggeration (default: 20x)</p>
             <button class="close-btn" id="close-modal">Close</button>
         </div>
     </div>
